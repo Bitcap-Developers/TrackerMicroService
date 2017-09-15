@@ -8,6 +8,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from bs4 import BeautifulSoup as bs
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
+import json
 ## The basic url for tracking on hcl's site 
 
 
@@ -28,17 +29,8 @@ def getTrackingStatus(tracking_no):
 	##Formatted string for getting the exact tracking status as per the tracking number
 	request_string="?AWB=%s&brand=DHL"%(tracking_no)
 	ch=url+request_string
-
 	print ch
-
 	driver.get(ch)
-
-	elem = driver.find_element_by_xpath("//*")
-	source_code = elem.get_attribute("outerHTML")
-
-	response=open("che.html","w+")
-	response.write(source_code.encode('utf-8'))
-	response.close()
 
 	################## Wait for the page to load and give you the name of the constituency #####################################
 	time.sleep(2)
@@ -52,12 +44,24 @@ def getTrackingStatus(tracking_no):
 
 	soup=bs(source_code,"html.parser")
 	table=soup.find_all("table")[1]
-	print table
+	checkpoints=table.find_all("tr")
+	checkpoints_dict={}
+	date=""
+	for cpoint in checkpoints:
+		details=cpoint.find_all("td")
+		if len(details)==0:
+			details=cpoint.find_all("th")
+			date=details[0].decode_contents(formatter="html")
+		else:
+			checkpoints_dict[details[0].decode_contents(formatter="html")]={"comment":details[1].decode_contents(formatter="html"),"place":details[2].decode_contents(formatter="html"),"date":date}
 
-	response=open("c.html","w+")
-	response.write(table.encode('utf-8'))
-	response.close()
 	driver.quit()
 
+	jsonResponse=json.dumps(checkpoints_dict,indent=4)
+	return jsonResponse
+	# print jsonResponse
+	
+
 ######################### Function Call Taking the arguement from the command line  #####################################
-getTrackingStatus("5520188122")
+response=getTrackingStatus("5520188122")
+print response
